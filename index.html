@@ -16,7 +16,7 @@
     html, body {
       margin: 0;
       padding: 0;
-      background-color: #F09;
+      background-color: #34001F;
       font-family: "Helvetica Neue", Helvetica, Arial, Sans-Serif;
       width: 100%;
       height: 100%;
@@ -38,42 +38,75 @@
 
     .curve-control .preview {
       background-color: #333;
-      position: absolute;
-      top: 64px;
+      width: 100%;
+      height: 90%;
+      /*position: absolute;
+      top: 104px;
       right: 0;
       bottom: 0;
-      left: 0;
+      left: 0;*/
     }
 
     .curve-control .curve { 
-      background-color: #F0F;
+      /*background-color: #F0F;*/
       -webkit-user-select: none;
     }
 
     .indicator {
-      background-color: #00F;
-      position: absolute;
-      top: 0;
-      left: 10%;
-      width: 60px;
-      height: 60px;
-      border-radius: 30px;
+      background-color: #FFF;
+      width: 50px;
+      height: 50px;
+      border-radius: 25px;
+      display: inline-block;
       -webkit-tranform: translate(-150%, 0);
+      box-shadow: 0 1px 2px #333;
+      margin-left: 5px;
+      margin-right: 5px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      display: none;
+      -webkit-transition: background-color 1.25s linear;
+      -webkit-user-select: none;
+    }
+
+    .indicator.active {
+      display: inline-block;
+    }
+
+    .indicator.current {
+      background-color: #FF0;
+    }
+
+    .indicator.current .proof {
+      background-color: #00F;
+      -webkit-user-select: none;
     }
 
     .proof {
       background-color: #F00;
-      width: 50px;
-      height: 50px;
-      border-radius: 25px;
-      margin: 5px 0 0 5px;
-      -webkit-tranform: translate(-150%, 0);
+      width: 80%;
+      height: 80%;
+      border-radius: 100%;
+      margin: 10% 0 0 10%;
+      /*-webkit-tranform: translate(-150%, 0);
       -webkit-animation: curve-animation 5s infinite;
-      -webkit-animation-play-state: "running";
+      -webkit-animation-play-state: "running";*/
     }
 
     .proof.pause {
       background-color: #FF0;
+    }
+
+    .tracked-curves {
+      display: block;
+      position: relative;
+      background-color: #8D0054;
+      height: 30%;
+      text-align: center;
+      overflow-x: hidden;
+      overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 10px;
     }
 
   </style>
@@ -87,18 +120,23 @@
       <canvas class="curve" width="100" height="100">
       </canvas>
     </section>
-    <section class="indicator">
-      <div class="proof">
+    <nav class="tracked-curves">
+      <section class="indicator curve-animation">
+        <div class="proof">
 
-      </div>
-    </section>
+        </div>
+      </section>
+    </nav>
     <style type="text/css" id="style">
       @-webkit-keyframes curve-animation {}
     </style>
   </article>
 
   <script>
-    window.addEventListener("DOMContentLoaded", function() {
+
+
+    var CurveControl = function() {
+      var allAnimations = {}
 
       // Our data stuff
       var animating = true,
@@ -125,12 +163,26 @@
       var stage = document.querySelector(".curve-control")
           canvas = stage.querySelector(".curve"),
           context = canvas.getContext("2d"),
-          proof = stage.querySelector(".proof")
+          proof = stage.querySelector(".proof"),
+          trackedCurves = stage.querySelector(".tracked-curves"),
+          currentIndicator = null
       
 
-      stage.addEventListener("touchmove", function(event) {
-        event.preventDefault()
+      trackedCurves.addEventListener("click", function(event) {
+        var animationName = event.target.dataset.animationName
+        if (!animationName)
+          return
+
+        trackedCurveVectors = allAnimations[animationName].absolute || []
+        relativeTrackedCurveVectors = allAnimations[animationName].relative || []
+
+        var target = event.target
+        console.log(animationName)
       })
+
+      canvas.addEventListener("touchmove", function(event) {
+          event.preventDefault()
+      }, false)
 
       // Canvas wants explicit size for pretty rendering
       var fitCanvas = function() {
@@ -206,17 +258,34 @@
           relativeTrackedCurveVectors.push(relativeVector)
         }
 
+        var generatedAnimationName = generateCSSAnimationStyles(document.styleSheets[1]),
+            indicatorTemplate = stage.querySelector(".indicator:last-child"),
+            indicator = indicatorTemplate.cloneNode(true),
+            proof = indicator.querySelector(".proof")
 
+
+        allAnimations[generatedAnimationName] = {
+          absolute: trackedCurveVectors,
+          relative: relativeTrackedCurveVectors
+        }
+
+        if (currentIndicator)
+          currentIndicator.classList.remove("current")
+
+        indicator.classList.add("active")
+        indicator.classList.add("current")
+        currentIndicator = indicator
+        
+        indicator.dataset.animationName = generatedAnimationName
+        proof.dataset.animationName = generatedAnimationName
         proof.style.webkitAnimationName = ""
         proof.style.webkitAnimationPlayState = "paused"
 
-        var generatedAnimationName = generateCSSAnimationStyles(document.styleSheets[1])
+        indicatorTemplate.parentNode.insertBefore(indicator, indicatorTemplate.parentNode.firstChild)
 
-        // stage.querySelector("#style").innerHTML = animationCSS
         setTimeout(function() {
-          // proof.style.webkitAnimationDuration =  "5s"
+          proof.classList.add(generatedAnimationName)
           proof.style.webkitAnimationDuration =  totalTime + "ms"
-          // proof.style.webkitAnimationFillMode = "forwards"
           proof.style.webkitAnimationPlayState =  "running"
           proof.style.webkitAnimationName =  generatedAnimationName
           proof.style.webkitAnimationIterationCount = "infinite"
@@ -255,6 +324,7 @@
       }
       canvas.addEventListener(trackingEventName, trackUserDrawingCurve)
 
+
       // Generate the CSS animation string
       var curveAnimationIterationCount = 0
       var generateCSSAnimationStyles = function(parentStyleSheet) {
@@ -268,8 +338,13 @@
         }
         css += "}"
 
+        var cssClass = "." + name + " {\n"
+        cssClass += "-webkit-animation: " + name + " " + totalTime + "s infinite;\n"
+        cssClass += "}"
+        
         setTimeout(function() {
           parentStyleSheet.insertRule(css, 0)
+          parentStyleSheet.insertRule(cssClass, 0)
         }, 0)
 
         return name
@@ -334,14 +409,19 @@
           }
           context.fillRect(vector.x - 2, vector.y - 2, 4, 4)
         }
-
         context.restore()
       }
       tick() // Start the animation loop
+    }
+
+  
+    var curveControllers = {}
+    window.addEventListener("DOMContentLoaded", function() {
+      var curveControl = new CurveControl()
+      curveControl.animate = false
     })
 
-    // Some utilities
-
+    // Are we on a touch device (e.g. iPad, iPhone, Android)
     var isTouch = function() {
       return ('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch
     }
