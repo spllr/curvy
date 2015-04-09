@@ -5,6 +5,8 @@
   <meta id="viewport" name="viewport" content ="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <mata name="Author" content="Klaas Speller, over at @StoneSoupGr">
+
   <style type="text/css">
 
     body * {
@@ -59,31 +61,33 @@
       border-radius: 25px;
       display: inline-block;
       -webkit-tranform: translate(-150%, 0);
-      box-shadow: 0 1px 2px #333;
       margin-left: 5px;
       margin-right: 5px;
       margin-top: 10px;
       margin-bottom: 10px;
       display: none;
-      -webkit-transition: background-color 1.25s linear;
+      -webkit-transition: background-color 0.25s linear;
       -webkit-user-select: none;
     }
 
     .indicator.active {
       display: inline-block;
+      background-color: #645B99;
     }
 
     .indicator.current {
-      background-color: #FF0;
+      background-color: #00F;
+      background-color: #FFF;
     }
 
     .indicator.current .proof {
-      background-color: #00F;
+      background-color: #F00;
       -webkit-user-select: none;
     }
 
     .proof {
       background-color: #F00;
+      background-color: #FFF;
       width: 80%;
       height: 80%;
       border-radius: 100%;
@@ -109,6 +113,22 @@
       padding-bottom: 10px;
     }
 
+    footer {
+      color: #DBC6DC;
+      text-align: center;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: antialiased;
+      height: 10%;
+      padding-top: 2%;
+      font-size: 12px;
+    }
+
+    footer a, footer a:link, footer a:active, footer a:visited {
+     color: #DBC6DC;
+     -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: antialiased;
+    }
+
   </style>
 </head>
 <body>
@@ -130,6 +150,10 @@
     <style type="text/css" id="style">
       @-webkit-keyframes curve-animation {}
     </style>
+      <footer>
+        By <a href="http://spllr.net" title="Klaas Speller">spllr</a> over at <a href="http://stonesoup.io" title="Stone Soup">Stone Soup</a>
+      </footer>
+
   </article>
 
   <script>
@@ -169,6 +193,7 @@
       
 
       trackedCurves.addEventListener("click", function(event) {
+        event.preventDefault()
         var animationName = event.target.dataset.animationName
         if (!animationName)
           return
@@ -176,8 +201,10 @@
         trackedCurveVectors = allAnimations[animationName].absolute || []
         relativeTrackedCurveVectors = allAnimations[animationName].relative || []
 
-        var target = event.target
-        console.log(animationName)
+        disableCurrentIndicators()
+
+        var indicator = stage.querySelector(".indicator[data-animation-name=" + animationName + "]")
+        indicator.classList.add("current")
       })
 
       canvas.addEventListener("touchmove", function(event) {
@@ -269,8 +296,7 @@
           relative: relativeTrackedCurveVectors
         }
 
-        if (currentIndicator)
-          currentIndicator.classList.remove("current")
+        disableCurrentIndicators()
 
         indicator.classList.add("active")
         indicator.classList.add("current")
@@ -365,6 +391,13 @@
           }
         }
         return null
+      }
+
+      var disableCurrentIndicators = function() {
+        var currents = stage.querySelectorAll(".current")
+        for (var i = 0; i < currents.length; i++) {
+          currents[i].classList.remove("current")
+        }
       }
 
 
