@@ -2,6 +2,9 @@
 <html>
 <head>
   <title>Berry Pie Curves</title>
+  <meta id="viewport" name="viewport" content ="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style type="text/css">
 
     body * {
@@ -17,6 +20,8 @@
       font-family: "Helvetica Neue", Helvetica, Arial, Sans-Serif;
       width: 100%;
       height: 100%;
+      overflow: hidden;
+      overflow-x: hidden;
     }
 
     .curve-control {
@@ -42,6 +47,7 @@
 
     .curve-control .curve { 
       background-color: #F0F;
+      -webkit-user-select: none;
     }
 
     .indicator {
@@ -92,7 +98,6 @@
   </article>
 
   <script>
-    
     window.addEventListener("DOMContentLoaded", function() {
 
       // Our data stuff
@@ -111,6 +116,10 @@
           trackedCurveVectors = [],
           trackingUserDrawingCurve = false
 
+      // Event types
+      var startTrackingEventName = isTouch() ? "touchstart" : "mousedown",
+          endTrackingEventName = isTouch() ? "touchend" : "mouseup",
+          trackingEventName = isTouch() ? "touchmove" : "mousemove"
 
       // Our stage
       var stage = document.querySelector(".curve-control")
@@ -118,6 +127,10 @@
           context = canvas.getContext("2d"),
           proof = stage.querySelector(".proof")
       
+
+      stage.addEventListener("touchmove", function(event) {
+        event.preventDefault()
+      })
 
       // Canvas wants explicit size for pretty rendering
       var fitCanvas = function() {
@@ -127,6 +140,9 @@
       fitCanvas()
       window.addEventListener("resize", fitCanvas)
 
+      stage.addEventListener("scroll", function(event) {
+        event.preventDefault()
+      })
 
       proof.addEventListener("click", function() {
         if (proof.style.webkitAnimationPlayState !== "paused") {
@@ -160,7 +176,8 @@
         relativeTrackedCurveVectors = []
         trackingUserDrawingCurve = true
       }
-      canvas.addEventListener("mousedown", beginTrackingOfUserDrawingCurve)
+      canvas.addEventListener(startTrackingEventName, beginTrackingOfUserDrawingCurve)
+      // canvas.addEventListener("mousedown", beginTrackingOfUserDrawingCurve)
 
 
       // End tracking of the curve
@@ -208,7 +225,7 @@
         firstVector = null
         lastVector = null
       }
-      canvas.addEventListener("mouseup", endTrackingOfUserDrawingCurve)
+      canvas.addEventListener(endTrackingEventName, endTrackingOfUserDrawingCurve)
 
 
       // Track the user drawing a curve
@@ -216,7 +233,14 @@
         if (!trackingUserDrawingCurve)
           return
 
-        var vector = { x: event.offsetX, y: event.offsetY }
+        var vector
+        if (event.targetTouches) {
+          vector = { x: event.targetTouches[0].pageX, y: event.targetTouches[0].pageY }
+          vector.y -= 64
+        } else {
+          vector = { x: event.offsetX, y: event.offsetY }
+        }
+
         if (lastVector && lastVector.x > vector.x)
           vector.x = lastVector.x
 
@@ -228,11 +252,8 @@
           time = 0
           decay = true
         }
-
-        // timeDecayPerTick = Math.min(Math.max(0, lastVector.x - firstVector.x) * 0.01, 5)
       }
-      canvas.addEventListener("mousemove", trackUserDrawingCurve)
-
+      canvas.addEventListener(trackingEventName, trackUserDrawingCurve)
 
       // Generate the CSS animation string
       var curveAnimationIterationCount = 0
