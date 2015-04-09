@@ -412,8 +412,9 @@
         context.save()
         context.clearRect(0, 0, curveWidth, curveHeight)
 
-        context.strokeStyle = "#FFFFFF"
-        context.strokeWidth = 1
+        context.globalAlpha = 0.2
+        context.strokeStyle = "#CEBF55"
+        context.strokeWidth = 0.1
           
         // center line
         context.beginPath()
@@ -424,24 +425,35 @@
 
         // startline
         if (firstVector) {
+          context.save()
+          context.strokeStyle = "#CA96B8"
+          context.globalAlpha = 0.5;
           context.beginPath()
           context.moveTo(firstVector.x, 0)
           context.lineTo(firstVector.x, curveHeight)
           context.closePath()
           context.stroke()
+          context.restore()
         }
 
         context.fillStyle = "#FFFFFF"
 
+        context.save()
+        context.globalAlpha = 0.4;
+        context.beginPath()
         for (var i = 0; i < trackedCurveVectors.length; i++) {
           var trackedVector = trackedCurveVectors[i],
               vector = {
             x: trackedVector.x,
             y: trackedVector.y
-            
           }
-          context.fillRect(vector.x - 2, vector.y - 2, 4, 4)
+          context.fillRect(vector.x - 1, vector.y - 1, 2, 2)
+          context.lineTo(vector.x, vector.y)
         }
+        context.globalAlpha = 0.3;
+        context.stroke()
+        context.closePath()
+        context.restore()
         context.restore()
       }
       tick() // Start the animation loop
