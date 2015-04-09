@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Berry Pie Curves</title>
+  <style type="text/css">
+
+    body * {
+      margin: 0;
+      padding: 0;
+      font-weight: normal;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #F09;
+      font-family: "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+      width: 100%;
+      height: 100%;
+    }
+
+    .curve-control {
+      background-color: #FF0;
+      height: 62%;
+      min-height: 150px;
+      position: relative;
+    }
+
+    .curve-control header {
+      line-height: 64px;
+      text-align: center;
+    }
+
+    .curve-control .preview {
+      background-color: #333;
+      position: absolute;
+      top: 64px;
+      right: 0;
+      bottom: 0;
+      left: 0;
+    }
+
+    .curve-control .curve { 
+      background-color: #F0F;
+    }
+
+    .indicator {
+      background-color: #00F;
+      position: absolute;
+      top: 0;
+      left: 10%;
+      width: 60px;
+      height: 60px;
+      border-radius: 30px;
+      -webkit-tranform: translate(-150%, 0);
+    }
+
+    .proof {
+      background-color: #F00;
+      width: 50px;
+      height: 50px;
+      border-radius: 25px;
+      margin: 5px 0 0 5px;
+      -webkit-tranform: translate(-150%, 0);
+      -webkit-animation: curve-animation 5s infinite;
+      -webkit-animation-play-state: "running";
+    }
+
+    .proof.pause {
+      background-color: #FF0;
+    }
+
+  </style>
+</head>
+<body>
+  <article class="curve-control">
+    <header>
+      <h1>Control The Curve</h1>
+    </header>
+    <section class="preview">
+      <canvas class="curve" width="100" height="100">
+      </canvas>
+    </section>
+    <section class="indicator">
+      <div class="proof">
+
+      </div>
+    </section>
+    <style type="text/css" id="style">
+      @-webkit-keyframes curve-animation {}
+    </style>
+  </article>
+
+  <script>
+    
+    window.addEventListener("DOMContentLoaded", function() {
+
+      // Our data stuff
+      var animating = true,
+          curveHeight,
+          curveWidth,
+          decay = false,
+          endTime,
+          firstVector,
+          lastVector,
+          relativeTrackedCurveVectors = [],
+          startTime,
+          time = 0,
+          timeDecayPerTick = 0,
+          totalTime = 0,
+          trackedCurveVectors = [],
+          trackingUserDrawingCurve = false
+
+
+      // Our stage
+      var stage = document.querySelector(".curve-control")
+          canvas = stage.querySelector(".curve"),
+          context = canvas.getContext("2d"),
+          proof = stage.querySelector(".proof")
+      
+
+      // Canvas wants explicit size for pretty rendering
+      var fitCanvas = function() {
+        canvas.width = curveWidth = canvas.parentNode.clientWidth
+        canvas.height = curveHeight = canvas.parentNode.clientHeight  
+      }
+      fitCanvas()
+      window.addEventListener("resize", fitCanvas)
+
+
+      proof.addEventListener("click", function() {
+        if (proof.style.webkitAnimationPlayState !== "paused") {
+          proof.style.webkitAnimationPlayState =  "paused"
+          proof.classList.add("pause")
+        } else {
+          proof.style.webkitAnimationPlayState =  "running"
+          proof.classList.remove("pause")
+        }
+      })
+
+      // Capture proof animation start
+      proof.addEventListener("webkitAnimationStart", function(event) {
+        console.log("start animate", event)
+      }, false)
+
+      // Capture proof animation end
+      proof.addEventListener("webkitAnimationEnd", function(event) {
+        console.log("end animate", event)
+      }, false)
+
+      // Capture proof animation iteration
+      proof.addEventListener("webkitAnimationIteration", function(event) {
+        console.log("iterate animate", event)
+      }, false)
+
+      // Start tracking of the curve
+      var beginTrackingOfUserDrawingCurve = function(event) {
+        startTime = new Date().getTime()
+        trackedCurveVectors = []
+        relativeTrackedCurveVectors = []
+        trackingUserDrawingCurve = true
+      }
+      canvas.addEventListener("mousedown", beginTrackingOfUserDrawingCurve)
+
+
+      // End tracking of the curve
+      var endTrackingOfUserDrawingCurve = function(event) {
+        endTime = new Date().getTime()
+        totalTime = endTime - startTime
+        trackingUserDrawingCurve = false
+        decay = false
+
+        var startVector = trackedCurveVectors[0],
+            endVector = trackedCurveVectors[trackedCurveVectors.length - 1]
+        
+        if (!endVector || !startVector)
+          return
+        
+        relativeTrackedCurveVectors = []
+        fullWitdh = endVector.x - startVector.x,
+        fullHeight = curveHeight
+
+        for (var i = 0; i < trackedCurveVectors.length; i++) {
+          var absoluteVector = trackedCurveVectors[i],
+              relativeVector = {}
+
+          relativeVector.x = (absoluteVector.x - startVector.x) / fullWitdh
+          relativeVector.y = 1 - absoluteVector.y / fullHeight
+          relativeTrackedCurveVectors.push(relativeVector)
+        }
+
+
+        proof.style.webkitAnimationName = ""
+        proof.style.webkitAnimationPlayState = "paused"
+
+        var currentAnimationCSS = getCSSRuleForAnimation("curve-animation")
+        generateCSSAnimationStyles(currentAnimationCSS, "curve-animation")
+
+        // stage.querySelector("#style").innerHTML = animationCSS
+        setTimeout(function() {
+          proof.style.webkitAnimationDuration =  "5s"
+          proof.style.webkitAnimationFillMode = "forwards"
+          proof.style.webkitAnimationPlayState =  "running"
+          proof.style.webkitAnimationName =  "curve-animation"
+          proof.style.webkitAnimationIterationCount = "infinite"
+        }, 0)
+
+        firstVector = null
+        lastVector = null
+      }
+      canvas.addEventListener("mouseup", endTrackingOfUserDrawingCurve)
+
+
+      // Track the user drawing a curve
+      var trackUserDrawingCurve = function(event) {
+        if (!trackingUserDrawingCurve)
+          return
+
+        var vector = { x: event.offsetX, y: event.offsetY }
+        if (lastVector && lastVector.x > vector.x)
+          vector.x = lastVector.x
+
+        trackedCurveVectors.push(vector)
+        lastVector = vector
+        
+        if (trackedCurveVectors.length === 1) {
+          firstVector = vector
+          time = 0
+          decay = true
+        }
+
+        // timeDecayPerTick = Math.min(Math.max(0, lastVector.x - firstVector.x) * 0.01, 5)
+      }
+      canvas.addEventListener("mousemove", trackUserDrawingCurve)
+
+
+      // Generate the CSS animation string
+      var generateCSSAnimationStyles = function(cssRule, name) {
+        var parentStyleSheet = cssRule.parentStyleSheet
+        
+        parentStyleSheet.deleteRule(cssRule)
+
+        var css = "@-webkit-keyframes " + (name || "curve-animation") + " {\n"
+        for (var i = 0; i < relativeTrackedCurveVectors.length; i++) {
+          var relativeVector = relativeTrackedCurveVectors[i]
+          css += (relativeVector.x * 100) + "% { opacity: " + relativeVector.y + ";\n"
+          css += "-webkit-transform: scale(" + relativeVector.y +"); }\n";
+        }
+        css += "}"
+
+        setTimeout(function() {
+          parentStyleSheet.insertRule(css, 0)
+        }, 0)
+        
+        // setTimeout(function() {
+          
+        // }, 0)
+      }
+
+
+      // Find the css rules
+      var getCSSRuleForAnimation = function(animationName) {
+        var allStyleSheets = document.styleSheets
+        for (var i = 0; i < allStyleSheets.length; i++) {
+          var rules = allStyleSheets[i].cssRules
+          for (var j = 0; j < rules.length; j++) {
+            var rule = rules[j]
+            console.log(rule.type)
+            if (rule.type === window.CSSRule.WEBKIT_KEYFRAMES_RULE && rule.name === animationName) {
+              return rule
+            }
+          }
+        }
+        return null
+      }
+
+
+      // The animation loop tick
+      var tick = function() {
+        if (animating)
+          window.requestAnimationFrame(tick)
+        
+        if (decay)
+          time += timeDecayPerTick
+
+        context.save()
+        context.clearRect(0, 0, curveWidth, curveHeight)
+
+        context.strokeStyle = "#FFFFFF"
+        context.strokeWidth = 1
+          
+        // center line
+        context.beginPath()
+        context.moveTo(0, curveHeight / 2)
+        context.lineTo(curveWidth, curveHeight / 2)
+        context.closePath()
+        context.stroke()
+
+        // startline
+        if (firstVector) {
+          context.beginPath()
+          context.moveTo(firstVector.x, 0)
+          context.lineTo(firstVector.x, curveHeight)
+          context.closePath()
+          context.stroke()
+        }
+
+        context.fillStyle = "#FFFFFF"
+
+        for (var i = 0; i < trackedCurveVectors.length; i++) {
+          var trackedVector = trackedCurveVectors[i],
+              vector = {
+            x: trackedVector.x,
+            y: trackedVector.y
+            
+          }
+          context.fillRect(vector.x - 2, vector.y - 2, 4, 4)
+        }
+
+        context.restore()
+      }
+      tick() // Start the animation loop
+    })
+
+    // Some utilities
+
+    var isTouch = function() {
+      return ('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch
+    }
+
+  </script>
+</body>
+</html>
