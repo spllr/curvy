@@ -193,15 +193,15 @@
         proof.style.webkitAnimationName = ""
         proof.style.webkitAnimationPlayState = "paused"
 
-        var currentAnimationCSS = getCSSRuleForAnimation("curve-animation")
-        generateCSSAnimationStyles(currentAnimationCSS, "curve-animation")
+        var generatedAnimationName = generateCSSAnimationStyles(document.styleSheets[1])
 
         // stage.querySelector("#style").innerHTML = animationCSS
         setTimeout(function() {
-          proof.style.webkitAnimationDuration =  "5s"
-          proof.style.webkitAnimationFillMode = "forwards"
+          // proof.style.webkitAnimationDuration =  "5s"
+          proof.style.webkitAnimationDuration =  totalTime + "ms"
+          // proof.style.webkitAnimationFillMode = "forwards"
           proof.style.webkitAnimationPlayState =  "running"
-          proof.style.webkitAnimationName =  "curve-animation"
+          proof.style.webkitAnimationName =  generatedAnimationName
           proof.style.webkitAnimationIterationCount = "infinite"
         }, 0)
 
@@ -235,12 +235,11 @@
 
 
       // Generate the CSS animation string
-      var generateCSSAnimationStyles = function(cssRule, name) {
-        var parentStyleSheet = cssRule.parentStyleSheet
-        
-        parentStyleSheet.deleteRule(cssRule)
-
-        var css = "@-webkit-keyframes " + (name || "curve-animation") + " {\n"
+      var curveAnimationIterationCount = 0
+      var generateCSSAnimationStyles = function(parentStyleSheet) {
+        curveAnimationIterationCount++
+        var name = "curve-animation-" + curveAnimationIterationCount
+            css = "@-webkit-keyframes " + (name || "curve-animation") + " {\n"
         for (var i = 0; i < relativeTrackedCurveVectors.length; i++) {
           var relativeVector = relativeTrackedCurveVectors[i]
           css += (relativeVector.x * 100) + "% { opacity: " + relativeVector.y + ";\n"
@@ -251,10 +250,8 @@
         setTimeout(function() {
           parentStyleSheet.insertRule(css, 0)
         }, 0)
-        
-        // setTimeout(function() {
-          
-        // }, 0)
+
+        return name
       }
 
 
