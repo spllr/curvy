@@ -35,6 +35,17 @@ var server = http.createServer(function(req, res) {
       file.pipe(res)
       break
 
+    case "/app.css":
+      res.writeHead(200, {
+        "Content-Type": "application/javascript"
+      })
+      var file = fs.createReadStream(path.join(__dirname, "app.css"))
+      res.writeHead(200, {
+        "Content-Type": "text/css"
+      })
+      file.pipe(res)
+      break
+
     case "/curves.json":
       res.writeHead(200, {
         "Content-Type": "application/json"
