@@ -23,7 +23,7 @@ var CurveControl = function() {
       trackingEventName = isTouch() ? "touchmove" : "mousemove"
 
   // Our stage
-  var stage = document.querySelector(".curve-control")
+  var stage = document.querySelector(".curve-control"),
       canvas = stage.querySelector(".curve"),
       context = canvas.getContext("2d"),
       proof = stage.querySelector(".proof"),
